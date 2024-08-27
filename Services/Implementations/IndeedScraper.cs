@@ -71,27 +71,19 @@ namespace WebsiteScraper.Services.Implementations
                     var jobData = new JobData();
 
                     // Job Title
-                    var jobTitleNode = jobNode.SelectSingleNode(".//h2/a/span");
-                    jobData.Title = jobTitleNode.InnerText.Trim();
+                    jobData.Title = jobNode.SelectSingleNode(".//h2/a/span")?.InnerText.Trim() ?? "N/A";
 
                     // Company Name
-                    var companyNode = jobNode.SelectSingleNode(".//span[@data-testid='company-name']");
-                    jobData.Company = companyNode.InnerText.Trim();
+                    jobData.Company = jobNode.SelectSingleNode(".//span[@data-testid='company-name']")?.InnerText.Trim() ?? "N/A";
 
                     // Location
-                    var locationNode = jobNode.SelectSingleNode(".//div[@data-testid='text-location']");
-                    jobData.Location = locationNode.InnerText.Trim();
+                    jobData.Location = jobNode.SelectSingleNode(".//div[@data-testid='text-location']")?.InnerText.Trim() ?? "N/A";
 
                     // Description
-                    var descriptionNode = jobNode.SelectSingleNode(".//div/ul");
-                    jobData.Description = descriptionNode.InnerText.Trim();
+                    jobData.Description = jobNode.SelectSingleNode(".//div/ul")?.InnerText.Trim() ?? "N/A";
 
                     // Salary
-                    var salaryNode = jobNode.SelectSingleNode(".//div[contains(@class, 'salary-snippet-container')]");
-                    if (salaryNode != null)
-                    {
-                        jobData.Salary = salaryNode.InnerText.Trim();
-                    }
+                    jobData.Salary = jobNode.SelectSingleNode(".//div[contains(@class, 'salary-snippet-container')]")?.InnerText.Trim() ?? "N/A";
 
                     jobDataList.Add(jobData);
                 }
