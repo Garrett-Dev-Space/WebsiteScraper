@@ -7,7 +7,9 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Web;
+using System.Xml.Linq;
 using WebsiteScraper.Models;
+using WebsiteScraper.Services;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -18,95 +20,56 @@ namespace WebsiteScraper.Controllers
     public class ScrapeController : ControllerBase
     {
         private readonly ILogger<ScrapeController> log;
-        private readonly HttpClient _httpClient;
+        private readonly Func<string, IWebScraper> scraperFactory;
 
-        public ScrapeController(ILogger<ScrapeController> log, IHttpClientFactory httpClient)
+        public ScrapeController(ILogger<ScrapeController> log, Func<string, IWebScraper> scraperFactory)
         {
             this.log = log;
-            this._httpClient = httpClient.CreateClient("ScraperClient");
+            this.scraperFactory = scraperFactory;
         }
 
         // GET api/<ScrapeController>/5
         [HttpPost("{website}")]
-        public ActionResult<string> Post(string website, [FromBody] ScrapeRequest request)
+        public async Task<ActionResult<JobResultsDTO>> PostAsync(string website, [FromBody] ScrapeRequest request)
         {
-            this.log.LogInformation("C# HTTP Scrape POST function processed a request.");
+            this.log.LogInformation("Website Scrape POST function processed a request.");
+
+            var scraper = scraperFactory(website.ToLower());
+            if (scraper == null)
+            {
+                this.log.LogError(message: $"Website Scrape POST function Invalid website value: {website}");
+                return new NotFoundObjectResult(new { Error = $"Invalid website value: {website}" }) { StatusCode = 404 };
+            }
+
+            // Grab the user input from the POST body
+            var search = request.Query;
+            var location = request.Location;
+            var dayRange = request.LastNDays;
+            if (!ValidateDayRange(dayRange))
+            {
+                return new BadRequestObjectResult(new { Error = $"Invalid lastndays value: {dayRange}" }) { StatusCode = 403 };
+            }
 
             try
             {
-                if (!string.Equals(website, "indeed", StringComparison.OrdinalIgnoreCase))
-                {
-                    return NotFound();  // Returns a 404 Not Found response
-                }
-
-                var uriBuilder = new UriBuilder("https://indeed.com/jobs");
-                var query = HttpUtility.ParseQueryString(uriBuilder.Query);
-                var search = request.Query;
-                var location = request.Location;
-
-                if (!string.IsNullOrEmpty(search))
-                {
-                    query["q"] = HttpUtility.UrlEncode(search);
-                }
-                if (!string.IsNullOrEmpty(location))
-                {
-                    query["l"] = HttpUtility.UrlEncode(location);
-                }
-                uriBuilder.Query = query.ToString();
-                var url = uriBuilder.Uri.ToString();
-
-
-                var response = _httpClient.GetStringAsync(url);
-                var page = response.Result;
-
-                // Load the HTML string into a parser
-                var htmlDoc = new HtmlDocument();
-                htmlDoc.LoadHtml(page);
-
-                var jobDataList = new List<JobData>();
-
-                // Get all of the different job blocks on the page
-                var jobNodes = htmlDoc.DocumentNode.SelectNodes("//div[@class='job_seen_beacon']");
-                if (jobNodes != null)
-                {
-                    // Loop through the job blocks and extract the data from the HTML
-                    foreach (var jobNode in jobNodes)
-                    {
-                        var jobData = new JobData();
-
-                        // Job Title
-                        var jobTitleNode = jobNode.SelectSingleNode(".//h2/a/span");
-                        jobData.Title = jobTitleNode.InnerText.Trim();
-
-                        // Company Name
-                        var companyNode = jobNode.SelectSingleNode(".//span[@data-testid='company-name']");
-                        jobData.Company = companyNode.InnerText.Trim();
-
-                        // Location
-                        var locationNode = jobNode.SelectSingleNode(".//div[@data-testid='text-location']");
-                        jobData.Location = locationNode.InnerText.Trim();
-
-                        // Description
-                        var descriptionNode = jobNode.SelectSingleNode(".//div/ul");
-                        jobData.Description = descriptionNode.InnerText.Trim();
-
-                        // Salary
-                        var salaryNode = jobNode.SelectSingleNode(".//div[contains(@class, 'salary-snippet-container')]");
-                        if (salaryNode != null)
-                        {
-                            jobData.Salary = salaryNode.InnerText.Trim();
-                        }
-
-                        jobDataList.Add(jobData);
-                    }
-                }
-
+                var jobDataList = await scraper.ScrapeJobs(search, location, dayRange);
                 return Ok(jobDataList);
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
-            }            
+                this.log.LogError(message: "Unexpected error on Website Scrape POST .", exception: ex);
+                return new ObjectResult(ex.Message) { StatusCode = 500 };
+            }          
+        }
+
+        private bool ValidateDayRange(int? dayRange)
+        {
+            if (dayRange.HasValue && dayRange < 0)
+            {
+                this.log.LogError($"Invalid lastNDays value: {dayRange}");
+                return false;
+            }
+            return true;
         }
     }
 }
