@@ -8,15 +8,16 @@ namespace WebsiteScraper.Services.Implementations
 {
     public class IndeedScraper : IWebScraper
     {
-        private readonly HttpClient _httpClient;
+        private readonly HttpClient httpClient;
+        private const string indeedBaseURL = "https://indeed.com/jobs";
 
         public IndeedScraper(HttpClient httpClient)
         {
-            _httpClient = httpClient;
+            this.httpClient = httpClient;
         }
         public async Task<List<JobData>> ScrapeJobs(string search, string location, int? dayRange)
         {
-            var uriBuilder = new UriBuilder("https://indeed.com/jobs");
+            var uriBuilder = new UriBuilder(indeedBaseURL);
             var query = HttpUtility.ParseQueryString(uriBuilder.Query);
             query["sort"] = "date";
 
@@ -51,7 +52,7 @@ namespace WebsiteScraper.Services.Implementations
             var url = uriBuilder.Uri.ToString();
 
             //Call the page
-            var response = await _httpClient.GetStringAsync(url);
+            var response = await httpClient.GetStringAsync(url);
             var page = response;
 
             // Load the HTML string into a parser
