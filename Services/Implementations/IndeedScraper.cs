@@ -14,7 +14,7 @@ namespace WebsiteScraper.Services.Implementations
         {
             _httpClient = httpClient;
         }
-        public async Task<JobResultsDTO> ScrapeJobs(string search, string location, int? dayRange)
+        public async Task<List<JobData>> ScrapeJobs(string search, string location, int? dayRange)
         {
             var uriBuilder = new UriBuilder("https://indeed.com/jobs");
             var query = HttpUtility.ParseQueryString(uriBuilder.Query);
@@ -58,7 +58,6 @@ namespace WebsiteScraper.Services.Implementations
             var htmlDoc = new HtmlDocument();
             htmlDoc.LoadHtml(page);
 
-            var jobDataReturn = new JobResultsDTO();
             var jobDataList = new List<JobData>();
 
             // Get all of the different job blocks on the page
@@ -88,12 +87,7 @@ namespace WebsiteScraper.Services.Implementations
                     jobDataList.Add(jobData);
                 }
             }
-            jobDataReturn.Meta = new MetaData()
-            {
-                Query_Id = Guid.NewGuid()
-            };
-            jobDataReturn.Results = jobDataList;
-            return jobDataReturn;
+            return jobDataList;
         }
     }
 }

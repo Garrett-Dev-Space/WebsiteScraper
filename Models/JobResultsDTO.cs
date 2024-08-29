@@ -1,8 +1,11 @@
-﻿namespace WebsiteScraper.Models
+﻿using System.Text.Json.Serialization;
+
+namespace WebsiteScraper.Models
 {
     public class MetaData
     {
-        public Guid Query_Id { get; set; }
+        [JsonPropertyName("query-id")]
+        public int Query_Id { get; set; }
     }
     public class JobResultsDTO
     {
