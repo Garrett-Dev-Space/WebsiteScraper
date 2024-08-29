@@ -24,7 +24,7 @@ Scrapes the website entered for job listings
 ### GET /api/scrape/{query-id}
 Gets the results of a previous scrape based on the query-id
 #### Response
-- 200: Returns the results from the scrape with the query-id key
+- 200: Returns the results from the scrape with the query-id key matching the input value
 - 404: The results from query-id entered were not found
 
 ## Design Decisions
