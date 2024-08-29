@@ -8,15 +8,16 @@ namespace WebsiteScraper.Services.Implementations
 {
     public class IndeedScraper : IWebScraper
     {
-        private readonly HttpClient _httpClient;
+        private readonly HttpClient httpClient;
+        private const string indeedBaseURL = "https://indeed.com/jobs";
 
         public IndeedScraper(HttpClient httpClient)
         {
-            _httpClient = httpClient;
+            this.httpClient = httpClient;
         }
-        public async Task<JobResultsDTO> ScrapeJobs(string search, string location, int? dayRange)
+        public async Task<List<JobData>> ScrapeJobs(string search, string location, int? dayRange)
         {
-            var uriBuilder = new UriBuilder("https://indeed.com/jobs");
+            var uriBuilder = new UriBuilder(indeedBaseURL);
             var query = HttpUtility.ParseQueryString(uriBuilder.Query);
             query["sort"] = "date";
 
@@ -51,14 +52,13 @@ namespace WebsiteScraper.Services.Implementations
             var url = uriBuilder.Uri.ToString();
 
             //Call the page
-            var response = await _httpClient.GetStringAsync(url);
+            var response = await httpClient.GetStringAsync(url);
             var page = response;
 
             // Load the HTML string into a parser
             var htmlDoc = new HtmlDocument();
             htmlDoc.LoadHtml(page);
 
-            var jobDataReturn = new JobResultsDTO();
             var jobDataList = new List<JobData>();
 
             // Get all of the different job blocks on the page
@@ -88,12 +88,7 @@ namespace WebsiteScraper.Services.Implementations
                     jobDataList.Add(jobData);
                 }
             }
-            jobDataReturn.Meta = new MetaData()
-            {
-                Query_Id = Guid.NewGuid()
-            };
-            jobDataReturn.Results = jobDataList;
-            return jobDataReturn;
+            return jobDataList;
         }
     }
 }

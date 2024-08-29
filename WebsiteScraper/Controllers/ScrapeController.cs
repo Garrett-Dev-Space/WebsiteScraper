@@ -21,6 +21,8 @@ namespace WebsiteScraper.Controllers
     {
         private readonly ILogger<ScrapeController> log;
         private readonly Func<string, IWebScraper> scraperFactory;
+        private static readonly Dictionary<int, JobResultsDTO> queryHistory = new Dictionary<int, JobResultsDTO>();
+        private static int queryCount = 1;
 
         public ScrapeController(ILogger<ScrapeController> log, Func<string, IWebScraper> scraperFactory)
         {
@@ -53,13 +55,36 @@ namespace WebsiteScraper.Controllers
             try
             {
                 var jobDataList = await scraper.ScrapeJobs(search, location, dayRange);
-                return Ok(jobDataList);
+                var results = new JobResultsDTO()
+                {
+                    Meta = new MetaData()   { Query_Id = queryCount },
+                    Results = jobDataList
+
+                };
+                queryHistory[results.Meta.Query_Id] = results;
+                queryCount++;
+                return Ok(results);
             }
             catch (Exception ex)
             {
                 this.log.LogError(message: "Unexpected error on Website Scrape POST .", exception: ex);
                 return new ObjectResult(ex.Message) { StatusCode = 500 };
             }          
+        }
+
+        // GET api/<ScrapeController>/5
+        [HttpGet("{query-id}")]
+        public ActionResult<JobResultsDTO> Get([FromRoute(Name = "query-id")] int query_id)
+        {
+            this.log.LogInformation("Website Scrape GET function processed a request.");
+            if (queryHistory.TryGetValue(query_id, out var result))
+            {
+                return Ok(result);
+            }
+            else
+            {
+                return NotFound(new { Error = $"Query with id {query_id} could not be found." });
+            }
         }
 
         private bool ValidateDayRange(int? dayRange)
