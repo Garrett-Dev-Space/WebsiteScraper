@@ -5,9 +5,9 @@ namespace WebsiteScraper.Models
     public class MetaData
     {
         [JsonPropertyName("query-id")]
-        public int Query_Id { get; set; }
+        public Guid Query_Id { get; set; }
     }
-    public class JobResultsDTO
+    public class JobResults
     {
         public MetaData Meta { get; set; }
         public List<JobData> Results { get; set; }
