@@ -38,4 +38,5 @@ Gets the results of a previous scrape based on the query-id
 - Add authentication
 - Add more scrapers
 - Add more scraping filters that the user can input
+- Scrape more than just one page of job results per request
 
